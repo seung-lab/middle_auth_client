@@ -5,8 +5,8 @@ import os
 from urllib.parse import quote
 
 from furl import furl
-import cachetools.func
 from cachetools import cached, TTLCache
+from cachetools.keys import hashkey
 import requests
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
@@ -112,7 +112,7 @@ def get_user_cache(token):
     return lookup_function(token)
 
 
-@cachetools.func.ttl_cache(maxsize=CACHE_MAXSIZE, ttl=CACHE_TTL)
+@cached(TTLCache(maxsize=CACHE_MAXSIZE, ttl=CACHE_TTL), key=lambda table_id, root_id, token: hashkey(table_id, root_id))
 def is_root_public(table_id, root_id, token):
     if root_id is None:
         return False
@@ -148,7 +148,7 @@ def are_roots_public(table_id, root_ids, token):
     else:
         raise RuntimeError('is_root_public request failed')
 
-@cachetools.func.ttl_cache(maxsize=CACHE_MAXSIZE, ttl=CACHE_TTL)
+@cached(TTLCache(maxsize=CACHE_MAXSIZE, ttl=CACHE_TTL), key=lambda table_id, token: hashkey(table_id))
 def table_has_public(table_id, token):
     if AUTH_DISABLED:
         return True
@@ -163,7 +163,7 @@ def table_has_public(table_id, token):
         raise RuntimeError('has_public request failed')
 
 
-@cachetools.func.ttl_cache(maxsize=CACHE_MAXSIZE, ttl=CACHE_TTL)
+@cached(TTLCache(maxsize=CACHE_MAXSIZE, ttl=CACHE_TTL), key=lambda service_namespace, table_id, token: hashkey(service_namespace, table_id))
 def dataset_from_table_id(service_namespace, table_id, token):
     url = f"https://{AUTH_URL}/api/v1/service/{service_namespace}/table/{table_id}/dataset"
     req = session.get(
